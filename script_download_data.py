@@ -569,8 +569,8 @@ def process_ulsan(config):
     info.
     """
     data_folder = config.data_folder
-    csv_path_obs = 'data/ulsan_obs_data.csv'
-    csv_path_energy = 'data/energy.csv'
+    csv_path_obs = 'dataset/ulsan_obs_data.csv'
+    csv_path_energy = 'dataset/energy.csv'
 
     df_obs = pd.read_csv(csv_path_obs)
     df_energy = pd.read_csv(csv_path_energy)
@@ -629,6 +629,7 @@ def main(expt_name, force_download, output_folder):
       'electricity': download_electricity,
       'traffic': download_traffic,
       'favorita': process_favorita
+      'ulsan': process_ulsan
   }
 
   if expt_name not in download_functions:
