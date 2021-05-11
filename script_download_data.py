@@ -580,9 +580,9 @@ def process_ulsan(config):
     # make new DataFrame for model input
     df = pd.DataFrame()
     df['date'] = pd.to_datetime(df_obs['일시'])
-    df['month'] = 0
-    df['week_of_year'] = 0
-    df['day_of_month'] = 0
+    df['month'] = df['date'].dt.month
+    df['week_of_year'] = df['date'].dt.week
+    df['day_of_month'] = df['date'].dt.day
 
     df['temperature'] = df_obs['기온(°C)']
     df['wind_speed'] = df_obs['풍속(m/s)']
@@ -592,6 +592,9 @@ def process_ulsan(config):
 
     df['id'] = df_obs['지점']
     df['energy'] = df_energy['ulsan']
+
+    df['Region'] = df_obs['지점명']
+    df['days_from_start'] = (df['date'] - pd.to_datetime('2018-03-01 00:00')).dt.days
 
     output_file = config.data_csv_path
     print('Completed formatting, saving to {}'.format(output_file))
@@ -628,7 +631,7 @@ def main(expt_name, force_download, output_folder):
       'volatility': download_volatility,
       'electricity': download_electricity,
       'traffic': download_traffic,
-      'favorita': process_favorita
+      'favorita': process_favorita,
       'ulsan': process_ulsan
   }
 

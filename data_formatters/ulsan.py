@@ -30,6 +30,7 @@
 import data_formatters.base
 import libs.utils as utils
 import sklearn.preprocessing
+import pandas as pd
 
 GenericDataFormatter = data_formatters.base.GenericDataFormatter
 DataTypes = data_formatters.base.DataTypes
@@ -42,8 +43,9 @@ class UlsanFormatter(GenericDataFormatter):
 
     _column_definition = [
         ('id', DataTypes.CATEGORICAL, InputTypes.ID),
-        ('date', DataTypes.CATEGORICAL, InputTypes.TIME),
+        ('date', DataTypes.DATE, InputTypes.TIME),
         ('energy', DataTypes.REAL_VALUED, InputTypes.TARGET),
+        ('days_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
         ('week_of_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
         ('day_of_month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
@@ -51,7 +53,8 @@ class UlsanFormatter(GenericDataFormatter):
         ('wind_speed', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ('wind_direction', DataTypes.CATEGORICAL, InputTypes.OBSERVED_INPUT),
         ('humidity', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
-        ('cloud', DataTypes.CATEGORICAL, InputTypes.OBSERVED_INPUT)
+        ('cloud', DataTypes.CATEGORICAL, InputTypes.OBSERVED_INPUT),
+        ('Region', DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT)
     ]
 
     def __init__(self):
@@ -68,9 +71,10 @@ class UlsanFormatter(GenericDataFormatter):
         test_boundary = pd.to_datetime('2020-07-03 00:00:00')
 
         index = df['date']
+        index = pd.to_datetime(index)
         train = df.loc[index < valid_boundary]
         valid = df.loc[(index >= valid_boundary) & (index < test_boundary)]
-        test = df.loc[(index >= test_boundary) & (df.index <= '2019-06-28')]
+        test = df.loc[(index >= test_boundary)]
 
         self.set_scalers(train)
 
@@ -94,20 +98,28 @@ class UlsanFormatter(GenericDataFormatter):
         data_real_input = df[real_inputs].values
         data_target = df[target_column].values
         self._real_scalers = sklearn.preprocessing.StandardScaler().fit(data_real_input)
-        self._target_scaler = sklearn.preprocessing.StandardScaler().fit(data_target)
+        self._target_scaler = sklearn.preprocessing.StandardScaler().fit(df[[target_column]].values)
 
         # Format categorical scalers
         categorical_inputs = utils.extract_cols_from_data_type(
             DataTypes.CATEGORICAL, column_definitions,
             {InputTypes.ID, InputTypes.TIME}
         )
-        ### not done...
+        categorical_scalers = {}
+        num_classes = []
+        for col in categorical_inputs:
+            # Set all to str so that we don't have mixed integer/string columns
+            srs = df[col].apply(str)
+            categorical_scalers[col] = sklearn.preprocessing.LabelEncoder().fit(srs.values)
+            num_classes.append(srs.nunique())
 
         # Set categorical scaler outputs
-        ### not done...
+        self._cat_scalers = categorical_scalers
+        self._num_classes_per_cat_input = num_classes
 
 
     def transform_inputs(self, df):
+
         output = df.copy()
 
         if self._real_scalers is None and self._cat_scalers is None:
@@ -128,15 +140,55 @@ class UlsanFormatter(GenericDataFormatter):
         output[real_inputs] = self._real_scalers.transform(df[real_inputs].values)
 
         # Format categorical inputs
+        for col in categorical_inputs:
+            string_df = df[col].apply(str)
+            output[col] = self._cat_scalers[col].transform(string_df)
 
 
     def format_predictions(self, predictions):
-        pass
+
+        output = predictions.copy()
+        column_names = predictions.columns
+
+        for col in column_names:
+            if col not in {'forecast_time', 'identifier'}:
+                output[col] = self._target_scaler.inverse_transform(predictions[col])
+
+        return output
 
     # Default params
     def get_fixed_params(self):
-        pass
+
+        fixed_params = {
+            'total_time_steps': 8 * 24, # 수정 필요
+            'num_encoder_steps': 7 * 24, # 수정 필요
+            'num_epochs': 100,
+            'early_stopping_patience': 5,
+            'multiprocessing_workers': 5,
+        }
+
+        return fixed_params
 
     def get_default_model_params(self):
-        pass
+
+        # model_params = {
+        #     'dropout_rate': 0.3,
+        #     'hidden_layer_size': 160,
+        #     'learning_rate': 0.01,
+        #     'minibatch_size': 64,
+        #     'max_gradient_norm': 0.01,
+        #     'num_heads': 1,
+        #     'stack_size': 1
+        # }
+        model_params = {
+            'dropout_rate': 0.3,
+            'hidden_layer_size': 160,
+            'learning_rate': 0.01,
+            'minibatch_size': 64,
+            'max_gradient_norm': 0.01,
+            'num_heads': 1,
+            'stack_size': 1
+        }
+
+        return model_params
 

@@ -103,8 +103,7 @@ def main(expt_name,
 
   # Sets up hyperparam manager
   print("*** Loading hyperparm manager ***")
-  opt_manager = HyperparamOptManager({k: [params[k]] for k in params},
-                                     fixed_params, model_folder)
+  opt_manager = HyperparamOptManager({k: [params[k]] for k in params}, fixed_params, model_folder)
 
   # Training -- one iteration only
   print("*** Running calibration ***")
