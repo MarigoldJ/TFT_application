@@ -87,9 +87,7 @@ def main(expt_name,
   print("Loading & splitting data...")
   raw_data = pd.read_csv(data_csv_path, index_col=0)
   train, valid, test = data_formatter.split_data(raw_data)
-  train_samples, valid_samples = data_formatter.get_num_samples_for_calibration(
-  )
-
+  train_samples, valid_samples = data_formatter.get_num_samples_for_calibration()
   # Sets up default params
   fixed_params = data_formatter.get_experiment_params()
   params = data_formatter.get_default_model_params()
@@ -195,7 +193,7 @@ if __name__ == "__main__":
         metavar="e",
         type=str,
         nargs="?",
-        default="volatility",
+        default="ulsan",
         choices=experiment_names,
         help="Experiment Name. Default={}".format(",".join(experiment_names)))
     parser.add_argument(

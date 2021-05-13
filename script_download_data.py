@@ -568,7 +568,7 @@ def process_ulsan(config):
     """
     info.
     """
-    data_folder = config.data_folder
+    # data_folder = config.data_folder
     csv_path_obs = 'dataset/ulsan_obs_data.csv'
     csv_path_energy = 'dataset/energy.csv'
 
@@ -595,6 +595,10 @@ def process_ulsan(config):
 
     df['Region'] = df_obs['지점명']
     df['days_from_start'] = (df['date'] - pd.to_datetime('2018-03-01 00:00')).dt.days
+
+    # fill null value
+    df['cloud'].fillna(0, inplace=True) # null -> no cloud
+    df.fillna(method='ffill', inplace=True) # ffill
 
     output_file = config.data_csv_path
     print('Completed formatting, saving to {}'.format(output_file))

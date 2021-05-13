@@ -47,7 +47,7 @@ class UlsanFormatter(GenericDataFormatter):
         ('energy', DataTypes.REAL_VALUED, InputTypes.TARGET),
         ('days_from_start', DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ('month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
-        ('week_of_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
+        # ('week_of_year', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
         ('day_of_month', DataTypes.CATEGORICAL, InputTypes.KNOWN_INPUT),
         ('temperature', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
         ('wind_speed', DataTypes.REAL_VALUED, InputTypes.OBSERVED_INPUT),
@@ -67,6 +67,19 @@ class UlsanFormatter(GenericDataFormatter):
         self._num_classes_per_cat_input = None
 
     def split_data(self, df):
+        """Splits data frame into training-validation-test data frames.
+
+        This also calibrates scaling object, and transforms data for each split.
+
+        Args:
+            df: Source data frame to split.
+            valid_boundary: Starting year for validation data
+            test_boundary: Starting year for test data
+
+        Returns:
+            Tuple of transformed (train, valid, test) data.
+        """
+
         valid_boundary = pd.to_datetime('2019-12-01 00:00:00')
         test_boundary = pd.to_datetime('2020-07-03 00:00:00')
 
@@ -76,11 +89,23 @@ class UlsanFormatter(GenericDataFormatter):
         valid = df.loc[(index >= valid_boundary) & (index < test_boundary)]
         test = df.loc[(index >= test_boundary)]
 
+        print(df)           # debug
+        print(df.columns)   # debug
+        print('train >', train.shape)   # debug
+        print('valid >', valid.shape)   # debug
+        print('test >', test.shape)     # debug
+
         self.set_scalers(train)
 
         return (self.transform_inputs(data) for data in [train, valid, test])
 
     def set_scalers(self, df):
+        """Calibrates scalers using the data supplied.
+
+        Args:
+            df: Data to use to calibrate scalers.
+        """
+
         print('Setting scalers with training data...')
 
         column_definitions = self.get_column_definition()
@@ -96,9 +121,9 @@ class UlsanFormatter(GenericDataFormatter):
             {InputTypes.ID, InputTypes.TIME}
         )
         data_real_input = df[real_inputs].values
-        data_target = df[target_column].values
+        data_target = df[[target_column]].values
         self._real_scalers = sklearn.preprocessing.StandardScaler().fit(data_real_input)
-        self._target_scaler = sklearn.preprocessing.StandardScaler().fit(df[[target_column]].values)
+        self._target_scaler = sklearn.preprocessing.StandardScaler().fit(data_target)
 
         # Format categorical scalers
         categorical_inputs = utils.extract_cols_from_data_type(
@@ -119,6 +144,14 @@ class UlsanFormatter(GenericDataFormatter):
 
 
     def transform_inputs(self, df):
+        """ Performs feature transformations.
+
+        This includes both feature engineering, preprocessing and normalisation.
+        Args:
+            df: Data frame to transform.
+        Returns:
+            Transformed data frame.
+        """
 
         output = df.copy()
 
@@ -143,6 +176,8 @@ class UlsanFormatter(GenericDataFormatter):
         for col in categorical_inputs:
             string_df = df[col].apply(str)
             output[col] = self._cat_scalers[col].transform(string_df)
+
+        return output
 
 
     def format_predictions(self, predictions):
