@@ -90,6 +90,8 @@ class HyperparamOptManager:
 
     results_file = os.path.join(self.hyperparam_folder, "results.csv")
     params_file = os.path.join(self.hyperparam_folder, "params.csv")
+    # debug
+    # print('Sibal why dont work?', os.path.exists(results_file) and os.path.exists(params_file))
 
     if os.path.exists(results_file) and os.path.exists(params_file):
 
@@ -110,7 +112,7 @@ class HyperparamOptManager:
   def _get_params_from_name(self, name):
     """Returns previously saved parameters given a key."""
     params = self.saved_params
-
+    print('params...', params) # debug
     selected_params = dict(params[name])
 
     if self._override_w_fixed_params:

@@ -134,11 +134,17 @@ def main(expt_name,
         best_loss = val_loss
 
       tf.keras.backend.set_session(default_keras_session)
+      print('나에게 파라미터 값을 보여줘111 >', opt_manager.saved_params)  # debug
+      print('종료!!')  # debug
 
   print("*** Running tests ***")
   tf.reset_default_graph()
   with tf.Graph().as_default(), tf.Session(config=tf_config) as sess:
+    print('나에게 파라미터 값을 보여줘222 >', opt_manager.saved_params)  # debug
+    print('종료!!')  # debug
     tf.keras.backend.set_session(sess)
+    print('나에게 파라미터 값을 보여줘333 >', opt_manager.saved_params)  # debug
+    print('종료!!')  # debug
     best_params = opt_manager.get_best_params()
     model = ModelClass(best_params, use_cudnn=use_gpu)
 
